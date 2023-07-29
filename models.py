@@ -91,8 +91,8 @@ class KGReasoning(nn.Module):
         )
 
         self.cone_proj = ConeProjection(self.entity_dim, 1600, 2)
-        self.cone_intersection = ConeIntersection(self.entity_dim, drop)
-        self.cone_negation = ConeNegation()
+        # self.cone_intersection = ConeIntersection(self.entity_dim, drop)
+        # self.cone_negation = ConeNegation()
 
     def transform_union_query(self, queries, query_structure):
         """
