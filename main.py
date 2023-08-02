@@ -178,32 +178,26 @@ def load_data(args, tasks):
     Load queries and remove queries not in tasks
     '''
     logging.info("loading data")
-    train_queries = pickle.load(open(os.path.join(args.data_path, "train-queries.pkl"), 'rb'))
-    train_answers = pickle.load(open(os.path.join(args.data_path, "train-answers.pkl"), 'rb'))
-    valid_queries = pickle.load(open(os.path.join(args.data_path, "valid-queries.pkl"), 'rb'))
-    valid_hard_answers = pickle.load(open(os.path.join(args.data_path, "valid-hard-answers.pkl"), 'rb'))
-    valid_easy_answers = pickle.load(open(os.path.join(args.data_path, "valid-easy-answers.pkl"), 'rb'))
+    # train_queries = pickle.load(open(os.path.join(args.data_path, "train-queries.pkl"), 'rb'))
+    # train_answers = pickle.load(open(os.path.join(args.data_path, "train-answers.pkl"), 'rb'))
+    # valid_queries = pickle.load(open(os.path.join(args.data_path, "valid-queries.pkl"), 'rb'))
+    # valid_hard_answers = pickle.load(open(os.path.join(args.data_path, "valid-hard-answers.pkl"), 'rb'))
+    # valid_easy_answers = pickle.load(open(os.path.join(args.data_path, "valid-easy-answers.pkl"), 'rb'))
 
-    test_queries = pickle.load(open(os.path.join(args.data_path, "test-queries.pkl"), 'rb'))
-    test_hard_answers = pickle.load(open(os.path.join(args.data_path, "test-hard-answers.pkl"), 'rb'))
-    test_easy_answers = pickle.load(open(os.path.join(args.data_path, "test-easy-answers.pkl"), 'rb'))
+    # test_queries = pickle.load(open(os.path.join(args.data_path, "test-queries.pkl"), 'rb'))
+    # test_hard_answers = pickle.load(open(os.path.join(args.data_path, "test-hard-answers.pkl"), 'rb'))
+    # test_easy_answers = pickle.load(open(os.path.join(args.data_path, "test-easy-answers.pkl"), 'rb'))
+    
+    valid_hard_answers = []
+    test_hard_answers = []
 
-
-    # remove tasks not in args.tasks
-    for name in all_tasks:
-        if 'u' in name:
-            name, evaluate_union = name.split('-')
-        else:
-            evaluate_union = args.evaluate_union
-
-        if name not in tasks or evaluate_union != args.evaluate_union:
-            query_structure = name_query_dict[name if 'u' not in name else '-'.join([name, evaluate_union])]
-            if query_structure in train_queries:
-                del train_queries[query_structure]
-            if query_structure in valid_queries:
-                del valid_queries[query_structure]
-            if query_structure in test_queries:
-                del test_queries[query_structure]
+    train_queries = torch.load(os.path.join(args.data_path,'train_input.pt'))
+    train_answers = torch.load(os.path.join(args.data_path, 'train_output.pt'))
+    valid_queries = torch.load(os.path.join(args.data_path, 'val_input.pt'))
+    valid_easy_answers = torch.load(os.path.join(args.data_path, 'val_output.pt'))
+    test_queries = torch.load(os.path.join(args.data_path, 'test_input.pt'))
+    test_easy_answers = torch.load(os.path.join(args.data_path, 'test_output.pt'))
+    
 
     return train_queries, train_answers, valid_queries, valid_hard_answers, valid_easy_answers, test_queries, test_hard_answers, test_easy_answers
 
@@ -262,21 +256,28 @@ def main(args):
 
     logging.info("Training info:")
     if args.do_train:
-        for query_structure in train_queries:
-            logging.info(query_name_dict[query_structure] + ": " + str(len(train_queries[query_structure])))
+        # for query_structure in train_queries:
+        #     logging.info(query_name_dict[query_structure] + ": " + str(len(train_queries[query_structure])))
         train_path_queries = defaultdict(set)
         train_other_queries = defaultdict(set)
 
         # train_path_queries + train_other_queries = train_queries
-        path_list = ['1p', '2p', '3p']
-        for query_structure in train_queries:
-            if query_name_dict[query_structure] in path_list:
-                train_path_queries[query_structure] = train_queries[query_structure]
-            else:
-                train_other_queries[query_structure] = train_queries[query_structure]
-        train_path_queries = flatten_query(train_path_queries)
+        # path_list = ['1p', '2p', '3p']
+        # for query_structure in train_queries:
+        #     if query_name_dict[query_structure] in path_list:
+        #         train_path_queries[query_structure] = train_queries[query_structure]
+        #     else:
+        #         train_other_queries[query_structure] = train_queries[query_structure]
+        # train_path_queries = flatten_query(train_path_queries)
+        # train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
+        #     TrainDataset(train_path_queries, nentity, nrelation, args.negative_sample_size, train_answers),
+        #     batch_size=args.batch_size,
+        #     shuffle=True,
+        #     num_workers=args.cpu_num,
+        #     collate_fn=TrainDataset.collate_fn
+        # ))
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
-            TrainDataset(train_path_queries, nentity, nrelation, args.negative_sample_size, train_answers),
+            TrainDataset(train_queries, nentity, nrelation, args.negative_sample_size, train_answers),
             batch_size=args.batch_size,
             shuffle=True,
             num_workers=args.cpu_num,

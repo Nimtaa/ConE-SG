@@ -50,8 +50,8 @@ class TrainDataset(Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        query = self.queries[idx][0]
-        query_structure = self.queries[idx][1]
+        query = self.queries[idx]   
+        # query_structure = self.queries[idx][1]
         tail = np.random.choice(list(self.answer[query]))
         subsampling_weight = self.count[query]
         subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))
@@ -72,7 +72,7 @@ class TrainDataset(Dataset):
         negative_sample = torch.from_numpy(negative_sample)
         positive_sample = torch.LongTensor([tail])
         return positive_sample, negative_sample, subsampling_weight, flatten(query), query_structure
-
+    
     @staticmethod
     def collate_fn(data):
         positive_sample = torch.cat([_[0] for _ in data], dim=0)
@@ -88,6 +88,45 @@ class TrainDataset(Dataset):
         for query, qtype in queries:
             count[query] = start + len(answer[query])
         return count
+
+
+class TrainDatasetSG(Dataset):
+    def __init__(self, queries, nentity, nrelation, negative_sample_size, answer):
+        self.len = len(queries)
+        self.queries = queries
+        self.nentity = nentity
+        self.nrelation = nrelation
+        self.negative_sample_size = negative_sample_size
+        self.answer = answer
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, idx):
+        query = self.queries[idx]   
+        tail = np.random.choice(list(self.answer[query]))
+        subsampling_weight = self.count[query]
+        subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))
+        negative_sample_list = []
+        negative_sample_size = 0
+        while negative_sample_size < self.negative_sample_size:
+            negative_sample = np.random.randint(self.nentity, size=self.negative_sample_size * 2)
+            mask = np.in1d(
+                negative_sample,
+                self.answer[query],
+                assume_unique=True,
+                invert=True
+            )
+            negative_sample = negative_sample[mask]
+            negative_sample_list.append(negative_sample)
+            negative_sample_size += negative_sample.size
+        negative_sample = np.concatenate(negative_sample_list)[:self.negative_sample_size]
+        negative_sample = torch.from_numpy(negative_sample)
+        positive_sample = torch.LongTensor([tail])
+        return positive_sample, negative_sample, subsampling_weight, flatten(query)
+
+
+
 
 
 class SingledirectionalOneShotIterator(object):
